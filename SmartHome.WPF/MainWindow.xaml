@@ -1,0 +1,38 @@
+﻿<Window x:Class="SmartHome.WPF.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Akıllı Ev Yönetim Sistemi" Height="450" Width="800"
+        WindowStartupLocation="CenterScreen">
+
+    <Grid Margin="15">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,15">
+            <Button Content="🔄 Yenile" Command="{Binding LoadDevicesCommand}" Width="100" Margin="0,0,10,0" Padding="8" Cursor="Hand"/>
+            <Button Content="➕ Test Cihazı Ekle" Command="{Binding AddTestDevicesCommand}" Width="150" Margin="0,0,10,0" Padding="8" Cursor="Hand"/>
+            <Button Content="🏠 Eve Geldim (Tümünü Aç)" Command="{Binding TurnOnAllCommand}" Width="200" Padding="8" Background="#FF4CAF50" Foreground="White" FontWeight="Bold" Cursor="Hand"/>
+        </StackPanel>
+
+        <DataGrid Grid.Row="1" ItemsSource="{Binding Devices}" AutoGenerateColumns="False" 
+                  CanUserAddRows="False" IsReadOnly="True" AlternatingRowBackground="#FFF0F0F0" RowHeight="35">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Cihaz Adı" Binding="{Binding Name}" Width="*"/>
+                <DataGridTextColumn Header="Durum" Binding="{Binding StatusText}" Width="100"/>
+                <DataGridTextColumn Header="Sıcaklık (°C)" Binding="{Binding Temperature}" Width="100"/>
+                <DataGridTemplateColumn Header="İşlem" Width="100">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <Button Content="Aç/Kapat" 
+                                    Command="{Binding DataContext.ToggleDeviceCommand, RelativeSource={RelativeSource AncestorType=Window}}" 
+                                    CommandParameter="{Binding}" 
+                                    Padding="5" Cursor="Hand" Background="#FF2196F3" Foreground="White" FontWeight="Bold"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+            </DataGrid.Columns>
+        </DataGrid>
+    </Grid>
+</Window>
