@@ -1,57 +1,118 @@
 ﻿using SmartHome.API.Application.Interfaces;
+using SmartHome.API.Domain.Devices;
+using SmartHome.API.Domain.Enums;
 using SmartHome.API.Domain.Interfaces;
+using SmartHome.API.Infrastructure.Data;
 
 namespace SmartHome.API.Application.Services
 {
     public class DeviceService : IDeviceService
     {
-        // İleride veritabanı (EF Core) buraya gelecek. Şimdilik RAM'de (List) tutuyoruz.
-        private readonly List<ISmartDevice> _devices;
+        private readonly SmartHomeDbContext _context;
 
-        public DeviceService()
+        // Veritabanı köprümüzü (DbContext) içeri alıyoruz
+        public DeviceService(SmartHomeDbContext context)
         {
-            _devices = new List<ISmartDevice>();
+            _context = context;
         }
 
         public IEnumerable<ISmartDevice> GetAllDevices()
         {
-            return _devices;
+            // 1. Veritabanındaki tüm kayıtları çek
+            var entities = _context.Devices.ToList();
+            var devices = new List<ISmartDevice>();
+
+            // 2. Veritabanı kayıtlarını (Entity), iş kuralları nesnelerine (Domain) çevir (Mapping)
+            foreach (var entity in entities)
+            {
+                if (entity.Type == DeviceType.Light)
+                {
+                    devices.Add(new SmartLight(entity.Name) { Id = entity.Id, IsOn = entity.IsOn });
+                }
+                else if (entity.Type == DeviceType.Thermostat)
+                {
+                    var thermostat = new SmartThermostat(entity.Name) { Id = entity.Id, IsOn = entity.IsOn };
+                    if (entity.Temperature.HasValue) thermostat.SetTemperature(entity.Temperature.Value);
+                    devices.Add(thermostat);
+                }
+                else if (entity.Type == DeviceType.AirPurifier) // YENİ EKLENEN
+                {
+                    devices.Add(new SmartAirPurifier(entity.Name) { Id = entity.Id, IsOn = entity.IsOn });
+                }
+                else if (entity.Type == DeviceType.RobotVacuum) // YENİ EKLENEN
+                {
+                    devices.Add(new SmartRobotVacuum(entity.Name) { Id = entity.Id, IsOn = entity.IsOn });
+                }
+            }
+            return devices;
+        }
+
+        public void AddCustomDevice(string name, DeviceType type)
+        {
+            var entity = new DeviceEntity
+            {
+                Id = Guid.NewGuid(),
+                Name = name,
+                Type = type,
+                IsOn = false
+            };
+            _context.Devices.Add(entity);
+            _context.SaveChanges();
+        }
+
+        public void RemoveDevice(Guid id)
+        {
+            var entity = _context.Devices.FirstOrDefault(d => d.Id == id);
+            if (entity != null)
+            {
+                _context.Devices.Remove(entity);
+                _context.SaveChanges();
+            }
         }
 
         public void AddDevice(ISmartDevice device)
         {
-            _devices.Add(device);
+            // Domain nesnesini veritabanı satırına (Entity) çeviriyoruz
+            var entity = new DeviceEntity
+            {
+                Id = device.Id,
+                Name = device.Name,
+                Type = device.Type,
+                IsOn = device.IsOn,
+                Temperature = (device as SmartThermostat)?.Temperature
+            };
+
+            _context.Devices.Add(entity);
+            _context.SaveChanges(); // SQL'de INSERT INTO komutunu çalıştırır
         }
 
         public void TurnOnAllDevices()
         {
-            // İşte ISmartDevice şablonunun gücü! Cihaz ışık mı termostat mı diye 
-            // if-else yazmadan hepsini tek bir döngüde açabiliyoruz.
-            foreach (var device in _devices)
+            var entities = _context.Devices.ToList();
+            foreach (var entity in entities)
             {
-                device.TurnOn();
+                entity.IsOn = true; // SQL'de UPDATE komutunu hazırlar
             }
+            _context.SaveChanges(); // Veritabanına kaydeder
         }
 
         public void TurnOffAllDevices()
         {
-            foreach (var device in _devices)
+            var entities = _context.Devices.ToList();
+            foreach (var entity in entities)
             {
-                device.TurnOff();
+                entity.IsOn = false;
             }
+            _context.SaveChanges();
         }
 
         public void ToggleDevice(Guid id)
         {
-            // Cihazı listeden ID'sine göre bul
-            var device = _devices.FirstOrDefault(d => d.Id == id);
-            if (device != null)
+            var entity = _context.Devices.FirstOrDefault(d => d.Id == id);
+            if (entity != null)
             {
-                // Açıksa kapat, kapalıysa aç
-                if (device.IsOn)
-                    device.TurnOff();
-                else
-                    device.TurnOn();
+                entity.IsOn = !entity.IsOn;
+                _context.SaveChanges();
             }
         }
     }

@@ -5,10 +5,10 @@ namespace SmartHome.API.Domain.Devices
 {
     public class SmartThermostat : ISmartDevice
     {
-        public Guid Id { get; } = Guid.NewGuid();
+        public Guid Id { get; set; } = Guid.NewGuid();
         public string Name { get; set; }
         public DeviceType Type => DeviceType.Thermostat;
-        public bool IsOn { get; private set; }
+        public bool IsOn { get; set; }
 
         // Termostata özel ekstra özellik:
         public double Temperature { get; private set; } = 22.0;

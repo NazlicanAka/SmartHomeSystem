@@ -1,11 +1,13 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using SmartHome.API.Application.Interfaces;
-using SmartHome.API.Domain.Devices; // Test cihazları eklemek için
+using SmartHome.API.Domain.Enums;
 
 namespace SmartHome.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")] // Bu sayede adresimiz: localhost:PORT/api/devices olacak
+    [Authorize]
     public class DevicesController : ControllerBase
     {
         private readonly IDeviceService _deviceService;
@@ -24,14 +26,32 @@ namespace SmartHome.API.Controllers
             return Ok(devices);
         }
 
-        // 2. POST İsteği: Sisteme test amaçlı iki cihaz ekler
-        [HttpPost("add-test-devices")]
-        public IActionResult AddTestDevices()
+        [HttpPost]
+        [Authorize(Roles = "Parent")] // Sadece Ebeveynler ekleyebilir
+        public IActionResult AddDevice([FromBody] AddDeviceDto dto)
         {
-            _deviceService.AddDevice(new SmartLight("Oturma Odası Işığı"));
-            _deviceService.AddDevice(new SmartThermostat("Yatak Odası Termostatı"));
+            // Gelen string'i (örn: "Light") Enum'a çeviriyoruz
+            if (Enum.TryParse<DeviceType>(dto.Type, out var deviceType))
+            {
+                _deviceService.AddCustomDevice(dto.Name, deviceType);
+                return Ok();
+            }
+            return BadRequest("Geçersiz cihaz türü.");
+        }
 
-            return Ok("Test cihazları sisteme başarıyla eklendi!");
+        [HttpDelete("{id}")]
+        [Authorize(Roles = "Parent")] // Sadece Ebeveynler silebilir
+        public IActionResult DeleteDevice(Guid id)
+        {
+            _deviceService.RemoveDevice(id);
+            return Ok();
+        }
+
+        // Kullanıcıdan gelecek verinin şablonu
+        public class AddDeviceDto
+        {
+            public string Name { get; set; }
+            public string Type { get; set; }
         }
 
         // 3. POST İsteği: "Eve Geldim" senaryosu - Tüm cihazları açar

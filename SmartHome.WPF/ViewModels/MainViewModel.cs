@@ -6,6 +6,7 @@ using SmartHome.WPF.Services;
 
 namespace SmartHome.WPF.ViewModels
 {
+
     // DİKKAT: "partial" kelimesi çok önemlidir. Kurduğumuz Toolkit paketi arka planda bizim için ekstra kodlar üretecek.
     public partial class MainViewModel : ObservableObject
     {
@@ -16,14 +17,32 @@ namespace SmartHome.WPF.ViewModels
         [ObservableProperty]
         private ObservableCollection<SmartDeviceModel> _devices;
 
+        // Kullanıcının arayüzden gireceği yeni cihaz bilgileri
+        [ObservableProperty]
+        private string _newDeviceName;
+
+        [ObservableProperty]
+        private string _newDeviceType = "Light"; // Varsayılan değer Işık olsun
+
+        // Kullanıcının arayüzde göreceği cihaz türleri
+        public List<string> DeviceTypes { get; } = new List<string>
+        {
+            "Light",
+            "Thermostat",
+            "AirPurifier",
+            "RobotVacuum"
+        };
+
         public MainViewModel()
         {
             _apiService = new ApiService();
             Devices = new ObservableCollection<SmartDeviceModel>();
 
-            // Uygulama açılır açılmaz cihazları API'den çekip getirmesi için:
+            // Uygulama açıldığında cihazları getirmek yerine önce sistemi başlat (Giriş yap)
             _ = LoadDevicesAsync();
         }
+
+        
 
         // [RelayCommand] etiketi sayesinde bu metotlar otomatik olarak ekrandaki butonlara (Command) dönüşür.
 
@@ -38,18 +57,35 @@ namespace SmartHome.WPF.ViewModels
             }
         }
 
+
         [RelayCommand]
-        public async Task AddTestDevicesAsync()
+        public async Task AddDeviceAsync()
         {
-            await _apiService.AddTestDevicesAsync(); // API'ye istek at
-            await LoadDevicesAsync(); // Ekledikten sonra ekrandaki listeyi hemen yenile
+            if (string.IsNullOrWhiteSpace(NewDeviceName)) return;
+
+            bool isSuccess = await _apiService.AddDeviceAsync(NewDeviceName, NewDeviceType);
+            if (isSuccess)
+            {
+                NewDeviceName = string.Empty; // Eklendikten sonra kutuyu temizle
+                await LoadDevicesAsync();
+            }
+            else
+            {
+                System.Windows.MessageBox.Show("Cihaz ekleme yetkiniz yok (Sadece Ebeveynler).", "Yetki Hatası");
+            }
         }
 
         [RelayCommand]
-        public async Task TurnOnAllAsync()
+        public async Task DeleteDeviceAsync(SmartDeviceModel device)
         {
-            await _apiService.TurnOnAllAsync(); // API'ye tümünü aç isteği at
-            await LoadDevicesAsync(); // Durumların "AÇIK" olduğunu görmek için listeyi yenile
+            if (device != null)
+            {
+                bool isSuccess = await _apiService.DeleteDeviceAsync(device.Id);
+                if (isSuccess)
+                    await LoadDevicesAsync();
+                else
+                    System.Windows.MessageBox.Show("Cihaz silme yetkiniz yok (Sadece Ebeveynler).", "Yetki Hatası");
+            }
         }
 
 
@@ -64,6 +100,20 @@ namespace SmartHome.WPF.ViewModels
                 // İşlem bittikten sonra ekrandaki AÇIK/KAPALI yazısının güncellenmesi için listeyi yeniliyoruz
                 await LoadDevicesAsync();
             }
+        }
+
+        [RelayCommand]
+        public void Logout(System.Windows.Window currentWindow)
+        {
+            // 1. Kuryenin hafızasını temizle
+            _apiService.Logout();
+
+            // 2. Giriş Ekranını (LoginWindow) yeniden oluştur ve göster
+            var loginWindow = new LoginWindow();
+            loginWindow.Show();
+
+            // 3. Şu anki Ana Ekranı (MainWindow) tamamen kapat
+            currentWindow?.Close();
         }
     }
 }

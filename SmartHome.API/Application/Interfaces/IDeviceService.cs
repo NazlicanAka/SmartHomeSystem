@@ -1,4 +1,5 @@
-﻿using SmartHome.API.Domain.Interfaces;
+﻿using SmartHome.API.Domain.Enums;
+using SmartHome.API.Domain.Interfaces;
 
 namespace SmartHome.API.Application.Interfaces
 {
@@ -18,5 +19,8 @@ namespace SmartHome.API.Application.Interfaces
 
         // Belirli bir cihazı aç/kapat (Toggle)
         void ToggleDevice(Guid id);
+
+        void AddCustomDevice(string name, DeviceType type);
+        void RemoveDevice(Guid id);
     }
 }

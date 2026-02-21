@@ -5,10 +5,12 @@ namespace SmartHome.API.Domain.Devices
 {
     public class SmartLight : ISmartDevice
     {
-        public Guid Id { get; } = Guid.NewGuid(); // Otomatik benzersiz ID üretir
+        public Guid Id { get; set; } = Guid.NewGuid(); // Otomatik benzersiz ID üretir
         public string Name { get; set; }
         public DeviceType Type => DeviceType.Light;
-        public bool IsOn { get; private set; }
+        public bool IsOn { get; set; }
+
+
 
         public SmartLight(string name)
         {

@@ -4,10 +4,10 @@ namespace SmartHome.API.Domain.Interfaces
 {
     public interface ISmartDevice
     {
-        Guid Id { get; } // Cihazın benzersiz numarası
+        Guid Id { get; set; } // Cihazın benzersiz numarası
         string Name { get; set; } // Örn: "Oturma Odası Işığı"
         DeviceType Type { get; } // Cihazın türü (Enum'dan gelecek)
-        bool IsOn { get; } // Cihaz açık mı kapalı mı?
+        bool IsOn { get; set; } // Cihaz açık mı kapalı mı?
 
         // Her cihazın yapmak zorunda olduğu ortak eylemler:
         void TurnOn();
