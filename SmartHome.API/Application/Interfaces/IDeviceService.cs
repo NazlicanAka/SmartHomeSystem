@@ -1,5 +1,6 @@
 ﻿using SmartHome.API.Domain.Enums;
 using SmartHome.API.Domain.Interfaces;
+using SmartHome.API.Infrastructure.Data;
 
 namespace SmartHome.API.Application.Interfaces
 {
@@ -18,9 +19,17 @@ namespace SmartHome.API.Application.Interfaces
         void TurnOffAllDevices();
 
         // Belirli bir cihazı aç/kapat (Toggle)
-        void ToggleDevice(Guid id);
+        Task ToggleDeviceAsync(Guid id, string username);
 
-        void AddCustomDevice(string name, DeviceType type);
-        void RemoveDevice(Guid id);
+        Task AddCustomDeviceAsync(string name, DeviceType type, string protocol, string username);
+        Task RemoveDeviceAsync(Guid id, string username);
+
+        Task TriggerPresenceAsync(bool isHome, string username);
+
+        // 📊 Cihaz geçmişini getir
+        IEnumerable<DeviceHistoryEntity> GetDeviceHistory(Guid? deviceId = null);
+
+        // 🗑️ Tüm geçmişi temizle
+        void ClearAllHistory();
     }
 }

@@ -64,9 +64,9 @@ namespace SmartHome.WPF.Services
             public string Token { get; set; }
         }
 
-        public async Task<bool> AddDeviceAsync(string name, string type)
+        public async Task<bool> AddDeviceAsync(string name, string type, string protocol)
         {
-            var dto = new { Name = name, Type = type };
+            var dto = new { Name = name, Type = type, Protocol = protocol };
             var response = await _httpClient.PostAsJsonAsync(BaseUrl, dto);
             return response.IsSuccessStatusCode;
         }
@@ -129,6 +129,46 @@ namespace SmartHome.WPF.Services
         {
             _jwtToken = null;
             _httpClient.DefaultRequestHeaders.Authorization = null;
+        }
+
+        public async Task<bool> TriggerPresenceAsync(bool isHome)
+        {
+            var response = await _httpClient.PostAsJsonAsync($"{BaseUrl}/presence?isHome={isHome}", new { });
+            return response.IsSuccessStatusCode;
+        }
+
+        // 📊 Cihaz geçmişini getir
+        public async Task<List<DeviceHistoryModel>> GetDeviceHistoryAsync(Guid? deviceId = null)
+        {
+            try
+            {
+                string url = $"{BaseUrl}/history";
+                if (deviceId.HasValue)
+                {
+                    url += $"?deviceId={deviceId.Value}";
+                }
+
+                var history = await _httpClient.GetFromJsonAsync<List<DeviceHistoryModel>>(url);
+                return history ?? new List<DeviceHistoryModel>();
+            }
+            catch
+            {
+                return new List<DeviceHistoryModel>();
+            }
+        }
+
+        // 🗑️ Tüm geçmişi temizle
+        public async Task<bool> ClearHistoryAsync()
+        {
+            try
+            {
+                var response = await _httpClient.DeleteAsync($"{BaseUrl}/history/clear");
+                return response.IsSuccessStatusCode;
+            }
+            catch
+            {
+                return false;
+            }
         }
     }
 

@@ -27,13 +27,15 @@ namespace SmartHome.API.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = "Parent")] // Sadece Ebeveynler ekleyebilir
-        public IActionResult AddDevice([FromBody] AddDeviceDto dto)
+        [Authorize(Roles = "Parent")]
+        public async Task<IActionResult> AddDevice([FromBody] AddDeviceDto dto)
         {
-            // Gelen string'i (örn: "Light") Enum'a çeviriyoruz
             if (Enum.TryParse<DeviceType>(dto.Type, out var deviceType))
             {
-                _deviceService.AddCustomDevice(dto.Name, deviceType);
+                // JWT'den kullanıcı adını al
+                var username = User.Identity?.Name ?? "Bilinmeyen";
+
+                await _deviceService.AddCustomDeviceAsync(dto.Name, deviceType, dto.Protocol, username);
                 return Ok();
             }
             return BadRequest("Geçersiz cihaz türü.");
@@ -41,9 +43,12 @@ namespace SmartHome.API.Controllers
 
         [HttpDelete("{id}")]
         [Authorize(Roles = "Parent")] // Sadece Ebeveynler silebilir
-        public IActionResult DeleteDevice(Guid id)
+        public async Task<IActionResult> DeleteDevice(Guid id)
         {
-            _deviceService.RemoveDevice(id);
+            // JWT'den kullanıcı adını al
+            var username = User.Identity?.Name ?? "Bilinmeyen";
+
+            await _deviceService.RemoveDeviceAsync(id, username);
             return Ok();
         }
 
@@ -52,6 +57,7 @@ namespace SmartHome.API.Controllers
         {
             public string Name { get; set; }
             public string Type { get; set; }
+            public string Protocol { get; set; } // Wi-Fi veya Bluetooth
         }
 
         // 3. POST İsteği: "Eve Geldim" senaryosu - Tüm cihazları açar
@@ -64,10 +70,43 @@ namespace SmartHome.API.Controllers
 
         // 4. POST İsteği: Belirli bir cihazı açıp kapatır
         [HttpPost("{id}/toggle")]
-        public IActionResult ToggleDevice(Guid id)
+        public async Task<IActionResult> ToggleDevice(Guid id)
         {
-            _deviceService.ToggleDevice(id);
+            // JWT'den kullanıcı adını al
+            var username = User.Identity?.Name ?? "Bilinmeyen";
+
+            await _deviceService.ToggleDeviceAsync(id, username);
             return Ok();
+        }
+
+        [HttpPost("presence")]
+        public async Task<IActionResult> TriggerPresence([FromQuery] bool isHome)
+        {
+            // JWT'den kullanıcı adını al
+            var username = User.Identity?.Name ?? "Bilinmeyen";
+
+            await _deviceService.TriggerPresenceAsync(isHome, username);
+            return Ok();
+        }
+
+        // 📊 GET İsteği: Cihaz geçmişini getir
+        // Kullanım: /api/devices/history (tüm cihazlar için)
+        // Kullanım: /api/devices/history?deviceId=xxx (belirli cihaz için)
+        [HttpGet("history")]
+        public IActionResult GetDeviceHistory([FromQuery] Guid? deviceId = null)
+        {
+            var history = _deviceService.GetDeviceHistory(deviceId);
+            return Ok(history);
+        }
+
+        // 🗑️ DELETE İsteği: Tüm geçmişi temizle
+        // Kullanım: /api/devices/history/clear
+        [HttpDelete("history/clear")]
+        [Authorize(Roles = "Parent")] // Sadece Ebeveynler temizleyebilir
+        public IActionResult ClearHistory()
+        {
+            _deviceService.ClearAllHistory();
+            return Ok(new { Message = "Tüm geçmiş kayıtları başarıyla temizlendi!" });
         }
     }
 }

@@ -20,9 +20,14 @@ namespace SmartHome.WPF
         public LoginWindow()
         {
             InitializeComponent();
-            DataContext = new ViewModels.LoginViewModel();
+            var viewModel = new ViewModels.LoginViewModel();
+            DataContext = viewModel;
+
+            // PasswordBox'ın şifresini ViewModel'e bağla
+            PasswordBox.PasswordChanged += (sender, e) =>
+            {
+                viewModel.Password = PasswordBox.Password;
+            };
         }
-
-
     }
 }

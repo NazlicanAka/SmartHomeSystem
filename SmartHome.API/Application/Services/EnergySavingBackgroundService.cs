@@ -34,8 +34,8 @@ namespace SmartHome.API.Application.Services
                         // Sadece IŞIK tipindeki cihazları bul
                         if (device.Type == DeviceType.Light && device.IsOn)
                         {
-                            // Açık unutulmuş ışığı kapat!
-                            deviceService.ToggleDevice(device.Id);
+                            // Açık unutulmuş ışığı kapat! (Otomasyon sistemi tarafından)
+                            await deviceService.ToggleDeviceAsync(device.Id, "Sistem (Enerji Tasarrufu)");
 
                             // Not: Gerçek bir sistemde burada loglama (Console.WriteLine vb.) yapılır.
                         }

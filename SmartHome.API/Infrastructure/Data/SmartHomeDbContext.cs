@@ -8,6 +8,7 @@ namespace SmartHome.API.Infrastructure.Data
 
         public DbSet<DeviceEntity> Devices { get; set; }
         public DbSet<UserEntity> Users { get; set; } // Yeni tablomuz eklendi
+        public DbSet<DeviceHistoryEntity> DeviceHistory { get; set; } // Cihaz geçmişi tablosu
 
         // Veritabanı ilk oluştuğunda içine varsayılan kullanıcıları ekliyoruz (Data Seeding)
         protected override void OnModelCreating(ModelBuilder modelBuilder)

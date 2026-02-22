@@ -1,0 +1,78 @@
+<Window x:Class="SmartHome.WPF.DeviceHistoryWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="📊 Cihaz Geçmişi" Height="600" Width="900" WindowStartupLocation="CenterScreen">
+    <Window.Resources>
+        <!-- Renk Converterleri için Style'lar -->
+        <Style x:Key="ActionCellStyle" TargetType="DataGridCell">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding Action}" Value="Açıldı">
+                    <Setter Property="Foreground" Value="#FF4CAF50"/>
+                    <Setter Property="FontWeight" Value="Bold"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Action}" Value="Kapatıldı">
+                    <Setter Property="Foreground" Value="#FFF44336"/>
+                    <Setter Property="FontWeight" Value="Bold"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Action}" Value="Eklendi">
+                    <Setter Property="Foreground" Value="#FF2196F3"/>
+                    <Setter Property="FontWeight" Value="Bold"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Action}" Value="Silindi">
+                    <Setter Property="Foreground" Value="#FF9E9E9E"/>
+                    <Setter Property="FontWeight" Value="Bold"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+    </Window.Resources>
+    
+    <Grid Margin="15">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- BAŞLIK BÖLÜMÜ -->
+        <Border Grid.Row="0" Background="#FF2196F3" Padding="15" CornerRadius="5" Margin="0,0,0,15">
+            <StackPanel>
+                <TextBlock x:Name="TitleTextBlock" Text="📊 TÜM CİHAZ GEÇMİŞİ" 
+                           FontSize="20" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center"/>
+                <TextBlock x:Name="SubtitleTextBlock" Text="" 
+                           FontSize="12" Foreground="White" HorizontalAlignment="Center" Margin="0,5,0,0"/>
+            </StackPanel>
+        </Border>
+
+        <!-- LOG TABLOSU -->
+        <DataGrid Grid.Row="1" x:Name="HistoryDataGrid" 
+                  AutoGenerateColumns="False" 
+                  CanUserAddRows="False" 
+                  IsReadOnly="True" 
+                  AlternatingRowBackground="#FFF5F5F5" 
+                  RowHeight="35"
+                  GridLinesVisibility="Horizontal"
+                  HeadersVisibility="Column">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="🕒 Zaman" Binding="{Binding FormattedTime}" Width="150" FontSize="12"/>
+                <DataGridTextColumn Header="📱 Cihaz Adı" Binding="{Binding DeviceName}" Width="*" FontSize="13" FontWeight="Bold"/>
+                <DataGridTextColumn Header="⚡ İşlem" Binding="{Binding Action}" Width="120" CellStyle="{StaticResource ActionCellStyle}" FontSize="13"/>
+                <DataGridTextColumn Header="👤 Tetikleyen" Binding="{Binding TriggeredBy}" Width="200" FontSize="12" Foreground="#FF666666"/>
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <!-- ALT BİLGİ VE KAPAT BUTONU -->
+        <Border Grid.Row="2" Background="#FFF5F5F5" Padding="15" CornerRadius="5" Margin="0,15,0,0">
+            <Grid>
+                <TextBlock x:Name="CountTextBlock" Text="" VerticalAlignment="Center" FontSize="12" Foreground="#FF666666"/>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button Content="🗑️ Geçmişi Temizle" Click="ClearHistoryButton_Click" 
+                            Padding="15,8" Margin="0,0,10,0"
+                            Background="#FFFF9800" Foreground="White" FontWeight="Bold" Cursor="Hand"/>
+                    <Button Content="❌ Kapat" Click="CloseButton_Click" 
+                            Padding="20,8" 
+                            Background="#FFF44336" Foreground="White" FontWeight="Bold" Cursor="Hand"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

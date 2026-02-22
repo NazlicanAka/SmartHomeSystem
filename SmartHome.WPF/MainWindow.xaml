@@ -1,10 +1,14 @@
 ﻿<Window x:Class="SmartHome.WPF.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Akıllı Ev Yönetim Sistemi" Height="500" Width="900"
+        Title="Akıllı Ev Yönetim Sistemi" Height="500" Width="958"
         WindowStartupLocation="CenterScreen">
 
     <Grid Margin="15">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition/>
+            <ColumnDefinition Width="0*"/>
+        </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
@@ -17,18 +21,32 @@
                     CommandParameter="{Binding RelativeSource={RelativeSource AncestorType=Window}}" 
                     Width="100" Padding="8" Background="#FFF44336" Foreground="White" FontWeight="Bold" Cursor="Hand"/>
 
+            <Button DockPanel.Dock="Right" Content="📊 Geçmiş" 
+                    Command="{Binding ShowDeviceHistoryCommand}" 
+                    Width="100" Margin="0,0,10,0" Padding="8" Background="#FF9C27B0" Foreground="White" FontWeight="Bold" Cursor="Hand"/>
+
             <WrapPanel DockPanel.Dock="Left" VerticalAlignment="Center">
                 <Button Content="🔄 Yenile" Command="{Binding LoadDevicesCommand}" Width="80" Margin="0,0,15,0" Padding="8" Cursor="Hand"/>
 
                 <TextBlock Text="Cihaz Adı:" VerticalAlignment="Center" Margin="0,0,5,0" FontWeight="Bold"/>
                 <TextBox Text="{Binding NewDeviceName}" Width="130" Padding="5" Margin="0,0,15,0"/>
 
+                <TextBlock Text="Protokol:" VerticalAlignment="Center" Margin="0,0,5,0" FontWeight="Bold"/>
+                <ComboBox ItemsSource="{Binding Protocols}" SelectedItem="{Binding SelectedProtocol}" Width="100" Margin="0,0,15,0" VerticalContentAlignment="Center"/>
+
                 <TextBlock Text="Cihaz Türü:" VerticalAlignment="Center" Margin="0,0,5,0" FontWeight="Bold"/>
                 <ComboBox ItemsSource="{Binding DeviceTypes}" SelectedItem="{Binding NewDeviceType}" Width="100" Margin="0,0,15,0" VerticalContentAlignment="Center"/>
-
                 <Button Content="➕ Cihaz Ekle" Command="{Binding AddDeviceCommand}" Margin="0,0,25,0" Padding="10,5" Background="#FF4CAF50" Foreground="White" FontWeight="Bold" Cursor="Hand"/>
 
-                <Button Content="🏠 Eve Geldim" Command="{Binding TurnOnAllCommand}" Padding="10,5" Background="#FF9800" Foreground="White" FontWeight="Bold" Cursor="Hand"/>
+                <CheckBox Content="📱 Konum: Ev Wi-Fi Ağına Bağlı"
+                            IsChecked="{Binding IsHomeNetworkConnected, UpdateSourceTrigger=PropertyChanged}"
+                            Command="{Binding TogglePresenceCommand}"
+                            Margin="15,0,25,0" VerticalAlignment="Center"
+                            FontWeight="Bold" Foreground="#FF2196F3" Cursor="Hand">
+                    <CheckBox.LayoutTransform>
+                        <ScaleTransform ScaleX="1.2" ScaleY="1.2"/>
+                    </CheckBox.LayoutTransform>
+                </CheckBox>
             </WrapPanel>
         </DockPanel>
 
@@ -38,19 +56,24 @@
                 <DataGridTextColumn Header="Cihaz Adı" Binding="{Binding Name}" Width="*"/>
                 <DataGridTextColumn Header="Durum" Binding="{Binding StatusText}" Width="120"/>
                 <DataGridTextColumn Header="Sıcaklık (°C)" Binding="{Binding Temperature}" Width="100"/>
-                <DataGridTemplateColumn Header="İşlemler" Width="180">
+                <DataGridTemplateColumn Header="İşlemler" Width="270">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
                             <StackPanel Orientation="Horizontal">
                                 <Button Content="Aç/Kapat" 
                                         Command="{Binding DataContext.ToggleDeviceCommand, RelativeSource={RelativeSource AncestorType=Window}}" 
                                         CommandParameter="{Binding}" 
-                                        Margin="0,0,10,0" Padding="8,5" Cursor="Hand" Background="#FF2196F3" Foreground="White" FontWeight="Bold"/>
+                                        Margin="0,0,5,0" Padding="8,5" Cursor="Hand" Background="#FF2196F3" Foreground="White" FontWeight="Bold"/>
+
+                                <Button Content="📊 Geçmiş" 
+                                        Command="{Binding DataContext.ShowSpecificDeviceHistoryCommand, RelativeSource={RelativeSource AncestorType=Window}}" 
+                                        CommandParameter="{Binding}" 
+                                        Margin="0,0,5,0" Padding="8,5" Cursor="Hand" Background="#FF9C27B0" Foreground="White" FontWeight="Bold"/>
 
                                 <Button Content="🗑️ Sil" 
                                         Command="{Binding DataContext.DeleteDeviceCommand, RelativeSource={RelativeSource AncestorType=Window}}" 
                                         CommandParameter="{Binding}" 
-                                        Padding="15,5" Cursor="Hand" Background="#FFF44336" Foreground="White" FontWeight="Bold"/>
+                                        Padding="8,5" Cursor="Hand" Background="#FFF44336" Foreground="White" FontWeight="Bold"/>
                             </StackPanel>
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
