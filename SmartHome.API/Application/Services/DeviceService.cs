@@ -264,14 +264,14 @@ namespace SmartHome.API.Application.Services
                 light.IsOn = false;
                 LogDeviceAction(light.Id, light.Name, "Kapatıldı", "Sistem (Enerji Tasarrufu)");
                 affectedIds.Add(light.Id);
+            }
+            _context.SaveChanges();
 
-                // Her ışık için ayrı event yayınla (SignalR için)
-                // frontend 'de bu event'leri dinleyip sadece ışıkların durumunu güncelleyeceğiz, diğer cihazlar etkilenmeyecek.
+            foreach (var light in lights)
+            {
                 await _eventDispatcher.PublishAsync(new DeviceStateChangedEvent(
                     light.Id, light.Name, light.Type, false, true, "Sistem", "EnergySaving"));
             }
-
-            _context.SaveChanges(); // db kayıt yapıldı.
 
             // Toplu enerji tasarrufu event'i yayınla
             if (affectedIds.Any())

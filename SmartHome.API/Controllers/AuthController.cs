@@ -14,7 +14,6 @@ namespace SmartHome.API.Controllers
         private readonly IConfiguration _configuration;
         private readonly SmartHomeDbContext _context; // Veritabanı köprümüz
 
-        // Constructor'a (Yapıcı metoda) veritabanımızı da istiyoruz diyoruz
         public AuthController(IConfiguration configuration, SmartHomeDbContext context)
         {
             _configuration = configuration;
@@ -24,7 +23,7 @@ namespace SmartHome.API.Controllers
         [HttpPost("login")]
         public IActionResult Login([FromBody] LoginModel login)
         {
-            // 1. Veritabanından kullanıcıyı ve şifresini kontrol et
+            // Veritabanından kullanıcıyı ve şifresini kontrol et
             var user = _context.Users.FirstOrDefault(u => u.Username == login.Username && u.Password == login.Password);
 
             if (user != null)
@@ -33,13 +32,13 @@ namespace SmartHome.API.Controllers
                 var audience = _configuration["Jwt:Audience"];
                 var key = Encoding.ASCII.GetBytes(_configuration["Jwt:Key"]);
 
-                // 2. Biletin içine kullanıcının adını ve veritabanındaki "Rolünü" (Parent/Child) yaz!
+                // kullanıcının adını ve veritabanındaki "Rolünü" (Parent/Child) yaz
                 var tokenDescriptor = new SecurityTokenDescriptor
                 {
                     Subject = new ClaimsIdentity(new[]
                     {
                         new Claim(ClaimTypes.Name, user.Username),
-                        new Claim(ClaimTypes.Role, user.Role) // İŞTE SİHİR BURADA!
+                        new Claim(ClaimTypes.Role, user.Role)
                     }),
                     Expires = DateTime.UtcNow.AddHours(1),
                     Issuer = issuer,
@@ -66,8 +65,8 @@ namespace SmartHome.API.Controllers
             var newUser = new UserEntity
             {
                 Username = register.Username,
-                Password = register.Password, // MÜLAKAT NOTU: Gerçekte burası düz metin tutulmaz, Hashlenir (Örn: BCrypt ile).
-                Role = register.Role // "Parent" veya "Child" olarak gelecek
+                Password = register.Password, // normalde hashlenmesi gerekiyor
+                Role = register.Role
             };
 
             _context.Users.Add(newUser);
@@ -78,8 +77,6 @@ namespace SmartHome.API.Controllers
 
         
     }
-
-    // Giriş şablonunun (LoginModel) altına, kayıt şablonunu (RegisterModel) ekliyoruz
     public class RegisterModel
     {
         public string Username { get; set; }

@@ -7,21 +7,19 @@ using SmartHome.API.Domain.Extensions;
 namespace SmartHome.API.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")] // Bu sayede adresimiz: localhost:PORT/api/devices olacak
+    [Route("api/[controller]")] // localhost:PORT/api/devices
     [Authorize]
     public class DevicesController : ControllerBase
     {
         private readonly IDeviceService _deviceService;
         private readonly IEnumerable<IDeviceProtocolAdapter> _adapters;
 
-        // Dependency Injection: Sistem otomatik olarak IDeviceService'i buraya verecek
         public DevicesController(IDeviceService deviceService, IEnumerable<IDeviceProtocolAdapter> adapters)
         {
             _deviceService = deviceService;
             _adapters = adapters;
         }
 
-        // 1. GET İsteği: Tüm cihazları listeler
         [HttpGet]
         public IActionResult GetAllDevices()
         {
@@ -63,15 +61,13 @@ namespace SmartHome.API.Controllers
             public string Protocol { get; set; } // Wi-Fi veya Bluetooth
         }
 
-        // 3. POST İsteği: "Eve Geldim" senaryosu - Tüm cihazları açar
         [HttpPost("turn-on-all")]
         public IActionResult TurnOnAll()
         {
             _deviceService.TurnOnAllDevices();
-            return Ok("Eve hoş geldin! Tüm cihazlar açıldı.");
+            return Ok("Tüm cihazlar açıldı.");
         }
 
-        // 4. POST İsteği: Belirli bir cihazı açıp kapatır
         [HttpPost("{id}/toggle")]
         public async Task<IActionResult> ToggleDevice(Guid id)
         {
@@ -92,9 +88,8 @@ namespace SmartHome.API.Controllers
             return Ok();
         }
 
-        // 📊 GET İsteği: Cihaz geçmişini getir
-        // Kullanım: /api/devices/history (tüm cihazlar için)
-        // Kullanım: /api/devices/history?deviceId=xxx (belirli cihaz için)
+        // /api/devices/history (tüm cihazlar için)
+        // /api/devices/history?deviceId=xxx (belirli cihaz için)
         [HttpGet("history")]
         public IActionResult GetDeviceHistory([FromQuery] Guid? deviceId = null)
         {
@@ -102,8 +97,6 @@ namespace SmartHome.API.Controllers
             return Ok(history);
         }
 
-        // 🗑️ DELETE İsteği: Tüm geçmişi temizle
-        // Kullanım: /api/devices/history/clear
         [HttpDelete("history/clear")]
         [Authorize(Roles = "Parent")] // Sadece Ebeveynler temizleyebilir
         public IActionResult ClearHistory()
@@ -112,8 +105,6 @@ namespace SmartHome.API.Controllers
             return Ok(new { Message = "Tüm geçmiş kayıtları başarıyla temizlendi!" });
         }
 
-        // 📋 GET İsteği: Desteklenen cihaz türlerini getir
-        // Kullanım: /api/devices/types
         [HttpGet("types")]
         [AllowAnonymous] // Giriş yapmadan da erişilebilir (kayıt ekranı için)
         public IActionResult GetDeviceTypes()

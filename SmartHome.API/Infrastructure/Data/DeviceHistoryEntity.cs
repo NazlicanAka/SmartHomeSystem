@@ -7,7 +7,7 @@ namespace SmartHome.API.Infrastructure.Data
         public Guid DeviceId { get; set; } // Hangi cihaz
         public string DeviceName { get; set; } // Cihaz adı (kolay okumak için)
         public string Action { get; set; } // "Açıldı", "Kapatıldı", "Eklendi", "Silindi"
-        public DateTime Timestamp { get; set; } // Ne zaman oldu
+        public DateTime Timestamp { get; set; }
         public string TriggeredBy { get; set; } // "Kullanıcı", "Otomasyon", "Presence"
     }
 }

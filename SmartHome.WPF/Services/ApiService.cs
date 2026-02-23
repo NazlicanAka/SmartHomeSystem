@@ -1,5 +1,5 @@
 ﻿using System.Net.Http;
-using System.Net.Http.Json; // JSON verilerini otomatik okumak için
+using System.Net.Http.Json;
 using SmartHome.WPF.Models;
 using System.Net.Http.Headers;
 
@@ -11,14 +11,12 @@ namespace SmartHome.WPF.Services
         private static readonly HttpClient _httpClient = new HttpClient();
         private static string _jwtToken;
 
-        // Buradaki port numarasını (7106), kendi siyah ekranında yazan numarayla değiştir!
         private const string BaseUrl = "https://localhost:7106/api/devices";
 
         // AuthController'a ulaşıp giriş yapmak için kullanacağımız tam adres
         private const string AuthUrl = "https://localhost:7106/api/auth/login";
         private const string RegisterUrl = "https://localhost:7106/api/auth/register";
 
-        // Yeni Eklenen Giriş Yapma Metodu
         public async Task<bool> LoginAsync(string username, string password)
         {
             try
@@ -33,8 +31,7 @@ namespace SmartHome.WPF.Services
                     var result = await response.Content.ReadFromJsonAsync<LoginResponse>();
                     _jwtToken = result.Token;
 
-                    // EN ÖNEMLİ KISIM: Bundan sonraki tüm API isteklerinin başlığına (Header) bu bileti ekliyoruz!
-                    // Güvenlik görevlisi bu "Bearer" (Taşıyıcı) kelimesini arar.
+                    // Bundan sonraki tüm API isteklerinin başlığına (Header) bu bileti ekliyoruz!
                     _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _jwtToken);
 
                     return true;
@@ -58,7 +55,6 @@ namespace SmartHome.WPF.Services
             catch { return false; }
         }
 
-        // API'den gelen veriyi karşılamak için küçük bir şablon sınıf
         public class LoginResponse
         {
             public string Token { get; set; }
@@ -77,7 +73,6 @@ namespace SmartHome.WPF.Services
             return response.IsSuccessStatusCode;
         }
 
-        // 1. Postman'deki GET İsteği: Cihazları Listele
         public async Task<List<SmartDeviceModel>> GetDevicesAsync()
         {
             try
@@ -93,27 +88,16 @@ namespace SmartHome.WPF.Services
             }
         }
 
-        // 2. Postman'deki POST İsteği: Test Cihazları Ekle
-        public async Task AddTestDevicesAsync()
-        {
-            try
-            {
-                await _httpClient.PostAsync($"{BaseUrl}/add-test-devices", null);
-            }
-            catch { /* Hata yönetimi buraya eklenebilir */ }
-        }
-
-        // 3. Postman'deki POST İsteği: Tüm Cihazları Aç (Eve Geldim Senaryosu)
         public async Task TurnOnAllAsync()
         {
             try
             {
                 await _httpClient.PostAsync($"{BaseUrl}/turn-on-all", null);
             }
-            catch { /* Hata yönetimi buraya eklenebilir */ }
+            catch { }
         }
 
-        // 4. Postman'deki POST İsteği: Belirli bir cihazın durumunu değiştir
+        // Belirli bir cihazın durumunu değiştir
         public async Task ToggleDeviceAsync(Guid id)
         {
             try
@@ -121,7 +105,7 @@ namespace SmartHome.WPF.Services
                 // Cihazın ID'sini URL'ye ekleyerek API'ye gönderiyoruz
                 await _httpClient.PostAsync($"{BaseUrl}/{id}/toggle", null);
             }
-            catch { /* Hata yönetimi buraya eklenebilir */ }
+            catch {  }
         }
 
         // Çıkış yapıldığında hafızadaki bileti temizliyoruz
@@ -137,7 +121,7 @@ namespace SmartHome.WPF.Services
             return response.IsSuccessStatusCode;
         }
 
-        // 📊 Cihaz geçmişini getir
+        // Cihaz geçmişini getir
         public async Task<List<DeviceHistoryModel>> GetDeviceHistoryAsync(Guid? deviceId = null)
         {
             try
@@ -157,7 +141,7 @@ namespace SmartHome.WPF.Services
             }
         }
 
-        // 🗑️ Tüm geçmişi temizle
+        // Tüm geçmişi temizle
         public async Task<bool> ClearHistoryAsync()
         {
             try
@@ -171,7 +155,7 @@ namespace SmartHome.WPF.Services
             }
         }
 
-        // 📋 Desteklenen cihaz türlerini getir
+        // Desteklenen cihaz türlerini getir
         public async Task<List<string>> GetDeviceTypesAsync()
         {
             try
@@ -181,12 +165,12 @@ namespace SmartHome.WPF.Services
             }
             catch
             {
-                // Fallback: Backend'den alamazsak varsayılan liste
+                // Backend'den alamazsak varsayılan liste
                 return new List<string> { "Light", "Thermostat", "AirPurifier", "RobotVacuum" };
             }
         }
 
-        // 📋 Desteklenen protokolleri getir
+        // Desteklenen protokolleri getir
         public async Task<List<string>> GetProtocolsAsync()
         {
             try
@@ -196,8 +180,8 @@ namespace SmartHome.WPF.Services
             }
             catch
             {
-                // Fallback: Backend'den alamazsak varsayılan liste
-                return new List<string> { "Wi-Fi", "Bluetooth", "Zigbee" };
+                // Backend'den alamazsak varsayılan liste
+                return new List<string> { "Wi-Fi", "Bluetooth" };
             }
         }
     }

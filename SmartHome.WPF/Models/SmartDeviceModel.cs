@@ -7,8 +7,6 @@
         public string Name { get; set; }
         public int Type { get; set; } // API'deki Enum 0(Işık), 1(Termostat) olarak gelir
         public bool IsOn { get; set; }
-
-        // Ekranda daha güzel görünmesi için yardımcı bir özellik (Property)
         public string StatusText => IsOn ? "AÇIK" : "KAPALI";
     }
 }

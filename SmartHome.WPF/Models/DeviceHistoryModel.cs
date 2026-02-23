@@ -8,8 +8,6 @@ namespace SmartHome.WPF.Models
         public string Action { get; set; }
         public DateTime Timestamp { get; set; }
         public string TriggeredBy { get; set; }
-        
-        // Kullanıcı dostu zaman gösterimi
         public string FormattedTime => Timestamp.ToLocalTime().ToString("dd.MM.yyyy HH:mm:ss");
     }
 }

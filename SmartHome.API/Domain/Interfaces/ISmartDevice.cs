@@ -12,6 +12,6 @@ namespace SmartHome.API.Domain.Interfaces
         // Her cihazın yapmak zorunda olduğu ortak eylemler:
         void TurnOn();
         void TurnOff();
-        string GetStatus(); // Cihazın o anki durumunu (örn: "Sıcaklık 22 derece") döndürür
+        string GetStatus();
     }
 }

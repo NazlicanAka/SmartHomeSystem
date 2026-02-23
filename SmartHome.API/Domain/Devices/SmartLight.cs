@@ -20,8 +20,6 @@ namespace SmartHome.API.Domain.Devices
         public void TurnOn()
         {
             IsOn = true;
-            // Case study notu: Gerçekte burada Wi-Fi modülüne (IoT) "Açıl" sinyali gönderilir. 
-            // Biz mimariyi gösterdiğimiz için Mock (sahte) olarak sadece durumu güncelliyoruz.
         }
 
         public void TurnOff()
