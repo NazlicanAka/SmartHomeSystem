@@ -4,9 +4,7 @@ using System.Threading.Tasks;
 
 namespace SmartHome.WPF.Services
 {
-    /// <summary>
-    /// SignalR bağlantı yönetimi ve gerçek zamanlı bildirimler
-    /// </summary>
+    // SignalR bağlantı yönetimi ve gerçek zamanlı bildirimler
     public class SignalRService
     {
         private HubConnection? _connection;
@@ -18,6 +16,7 @@ namespace SmartHome.WPF.Services
         public event EventHandler<DeviceNotificationEventArgs>? DeviceRemoved;
         public event EventHandler<string>? AutomationTriggered;
         public event EventHandler<string>? UserPresenceChanged;
+        public event EventHandler<string>? EnergySavingTriggered;
         public event EventHandler<ConnectionState>? ConnectionStateChanged;
 
         public bool IsConnected => _connection?.State == HubConnectionState.Connected;
@@ -105,8 +104,18 @@ namespace SmartHome.WPF.Services
                 var json = System.Text.Json.JsonSerializer.Serialize(message);
                 using var doc = System.Text.Json.JsonDocument.Parse(json);
                 var msg = doc.RootElement.GetProperty("Message").GetString() ?? "Kullanıcı presence değişti";
-                
+
                 UserPresenceChanged?.Invoke(this, msg);
+            });
+
+            // EnergySavingTriggered event'i dinle
+            _connection.On<object>("EnergySavingTriggered", (message) =>
+            {
+                var json = System.Text.Json.JsonSerializer.Serialize(message);
+                using var doc = System.Text.Json.JsonDocument.Parse(json);
+                var msg = doc.RootElement.GetProperty("Message").GetString() ?? "Enerji tasarrufu aktif";
+
+                EnergySavingTriggered?.Invoke(this, msg);
             });
         }
 
@@ -120,12 +129,12 @@ namespace SmartHome.WPF.Services
                 {
                     await _connection.StartAsync();
                     ConnectionStateChanged?.Invoke(this, ConnectionState.Connected);
-                    Console.WriteLine("✅ SignalR bağlantısı kuruldu!");
+                    Console.WriteLine("SignalR bağlantısı kuruldu!");
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ SignalR bağlantı hatası: {ex.Message}");
+                Console.WriteLine($"SignalR bağlantı hatası: {ex.Message}");
                 ConnectionStateChanged?.Invoke(this, ConnectionState.Failed);
             }
         }

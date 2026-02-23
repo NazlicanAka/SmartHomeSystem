@@ -1,14 +1,14 @@
 ﻿using SmartHome.API.Application.Interfaces;
+using SmartHome.API.Domain.Enums;
 
 namespace SmartHome.API.Infrastructure.Adapters
 {
     public class BluetoothAdapter : IDeviceProtocolAdapter
     {
-        public string ProtocolName => "Bluetooth";
+        public Protocol Protocol => Protocol.Bluetooth;
 
         public async Task<bool> PairDeviceAsync(string deviceAddress)
         {
-            // Bluetooth eşleşme simülasyonu (Wi-Fi'a göre biraz daha hızlı bağlanıyor gibi yapalım)
             await Task.Delay(1000);
             return true;
         }

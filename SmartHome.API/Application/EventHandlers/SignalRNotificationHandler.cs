@@ -5,15 +5,16 @@ using SmartHome.API.Hubs;
 
 namespace SmartHome.API.Application.EventHandlers
 {
-    /// <summary>
-    /// Domain Event'lerini SignalR ile tüm bağlı client'lara broadcast eder
-    /// </summary>
+
+    // Ekrana anında yansımasını sağlayan yer.
+    // Uygulamaya bağlı herkes aynı anda değişiklikleri görecek.(Broadcast)
     public class SignalRNotificationHandler :
         IEventHandler<DeviceStateChangedEvent>,
         IEventHandler<DeviceAddedEvent>,
         IEventHandler<DeviceRemovedEvent>,
         IEventHandler<AutomationTriggeredEvent>,
-        IEventHandler<UserPresenceChangedEvent>
+        IEventHandler<UserPresenceChangedEvent>,
+        IEventHandler<EnergySavingTriggeredEvent>
     {
         private readonly IHubContext<DeviceNotificationHub> _hubContext;
 
@@ -24,6 +25,7 @@ namespace SmartHome.API.Application.EventHandlers
 
         public async Task HandleAsync(DeviceStateChangedEvent domainEvent)
         {
+            // domainEvent içindeki bilgileri kullanarak anlaşılır, kullanılabilir bir mesaj oluşturuyoruz.
             var message = new
             {
                 Type = "DeviceStateChanged",
@@ -35,7 +37,7 @@ namespace SmartHome.API.Application.EventHandlers
                 Message = $"{domainEvent.DeviceName} {(domainEvent.IsOn ? "açıldı" : "kapandı")}"
             };
 
-            await _hubContext.Clients.All.SendAsync("DeviceStateChanged", message);
+            await _hubContext.Clients.All.SendAsync("DeviceStateChanged", message); // Diğer clientlara bu mesajı gönderiyoruz.
         }
 
         public async Task HandleAsync(DeviceAddedEvent domainEvent)
@@ -97,6 +99,19 @@ namespace SmartHome.API.Application.EventHandlers
             };
 
             await _hubContext.Clients.All.SendAsync("UserPresenceChanged", message);
+        }
+
+        public async Task HandleAsync(EnergySavingTriggeredEvent domainEvent)
+        {
+            var message = new
+            {
+                Type = "EnergySavingTriggered",
+                DevicesAffected = domainEvent.DevicesAffected,
+                Timestamp = domainEvent.OccurredAt,
+                Message = $"Enerji Tasarrufu: {domainEvent.DevicesAffected} ışık kapatıldı"
+            };
+
+            await _hubContext.Clients.All.SendAsync("EnergySavingTriggered", message);
         }
     }
 }

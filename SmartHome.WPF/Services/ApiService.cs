@@ -170,6 +170,36 @@ namespace SmartHome.WPF.Services
                 return false;
             }
         }
+
+        // 📋 Desteklenen cihaz türlerini getir
+        public async Task<List<string>> GetDeviceTypesAsync()
+        {
+            try
+            {
+                var deviceTypes = await _httpClient.GetFromJsonAsync<List<string>>($"{BaseUrl}/types");
+                return deviceTypes ?? new List<string>();
+            }
+            catch
+            {
+                // Fallback: Backend'den alamazsak varsayılan liste
+                return new List<string> { "Light", "Thermostat", "AirPurifier", "RobotVacuum" };
+            }
+        }
+
+        // 📋 Desteklenen protokolleri getir
+        public async Task<List<string>> GetProtocolsAsync()
+        {
+            try
+            {
+                var protocols = await _httpClient.GetFromJsonAsync<List<string>>($"{BaseUrl}/protocols");
+                return protocols ?? new List<string>();
+            }
+            catch
+            {
+                // Fallback: Backend'den alamazsak varsayılan liste
+                return new List<string> { "Wi-Fi", "Bluetooth", "Zigbee" };
+            }
+        }
     }
 
 

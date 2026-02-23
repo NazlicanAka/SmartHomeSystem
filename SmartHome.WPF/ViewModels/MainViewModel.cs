@@ -7,12 +7,10 @@ using System.Windows;
 
 namespace SmartHome.WPF.ViewModels
 {
-
-    // DİKKAT: "partial" kelimesi çok önemlidir. Kurduğumuz Toolkit paketi arka planda bizim için ekstra kodlar üretecek.
     public partial class MainViewModel : ObservableObject
     {
-        private readonly ApiService _apiService;
-        private readonly SignalRService _signalRService;
+        private readonly ApiService _apiService; // REST API ile iletişim kuran servisimiz
+        private readonly SignalRService _signalRService; // haberi dinleyen telsiz görevinde.
 
         // ObservableCollection: Normal List'ten farkı, içine eleman eklendiğinde veya silindiğinde
         // ekranın (arayüzün) otomatik olarak anında güncellenmesini (tepki vermesini) sağlar.
@@ -24,7 +22,7 @@ namespace SmartHome.WPF.ViewModels
         private string _newDeviceName;
 
         [ObservableProperty]
-        private string _newDeviceType = "Light"; // Varsayılan değer Işık olsun
+        private string _newDeviceType = "Light";
 
         [ObservableProperty]
         private string _selectedProtocol = "Wi-Fi";
@@ -38,31 +36,56 @@ namespace SmartHome.WPF.ViewModels
         [ObservableProperty]
         private bool _isConnected;
 
-        // Kullanıcının arayüzde göreceği cihaz türleri
-        public List<string> DeviceTypes { get; } = new List<string>
-        {
-            "Light",
-            "Thermostat",
-            "AirPurifier",
-            "RobotVacuum"
-        };
+        // Kullanıcının arayüzde göreceği cihaz türleri (Backend'den dinamik olarak yüklenir)
+        [ObservableProperty]
+        private ObservableCollection<string> _deviceTypes = new();
 
-        public List<string> Protocols { get; } = new List<string> { "Wi-Fi", "Bluetooth" };
+        // Desteklenen protokoller (Backend'den dinamik olarak yüklenir)
+        [ObservableProperty]
+        private ObservableCollection<string> _protocols = new();
 
         public MainViewModel()
         {
             _apiService = new ApiService();
             _signalRService = new SignalRService();
             Devices = new ObservableCollection<SmartDeviceModel>();
+            DeviceTypes = new ObservableCollection<string>();
+            Protocols = new ObservableCollection<string>();
 
             // SignalR event'lerini dinle
             InitializeSignalREvents();
 
-            // Uygulama açıldığında cihazları getirmek yerine önce sistemi başlat (Giriş yap)
+            // Backend'den cihaz türleri ve protokolleri yükle
+            _ = LoadConfigurationAsync();
+
+            // Uygulama açıldığında cihazları getir
             _ = LoadDevicesAsync();
 
             // SignalR bağlantısını başlat
             _ = ConnectSignalRAsync();
+        }
+
+        // Backend'den cihaz türleri ve protokolleri yükle
+        private async Task LoadConfigurationAsync()
+        {
+            var deviceTypes = await _apiService.GetDeviceTypesAsync();
+            var protocols = await _apiService.GetProtocolsAsync();
+
+            DeviceTypes.Clear();
+            Protocols.Clear();
+
+            foreach (var type in deviceTypes)
+                DeviceTypes.Add(type);
+
+            foreach (var protocol in protocols)
+                Protocols.Add(protocol);
+
+            // Varsayılan değerleri ayarla
+            if (DeviceTypes.Any())
+                NewDeviceType = DeviceTypes.First();
+
+            if (Protocols.Any())
+                SelectedProtocol = Protocols.First();
         }
 
         private void InitializeSignalREvents()
@@ -70,7 +93,7 @@ namespace SmartHome.WPF.ViewModels
             // Bağlantı durumu değişikliklerini izle
             _signalRService.ConnectionStateChanged += (sender, state) =>
             {
-                Application.Current.Dispatcher.Invoke(() =>
+                Application.Current.Dispatcher.Invoke(() => // ekranla konuşma izni.
                 {
                     ConnectionStatus = state switch
                     {
@@ -92,10 +115,6 @@ namespace SmartHome.WPF.ViewModels
                 {
                     // Listeyi yenile
                     await LoadDevicesAsync();
-
-                    // Bildirim göster
-                    ShowNotification($"📱 {args.DeviceName}", 
-                        $"{(args.IsOn ? "Açıldı" : "Kapatıldı")} - {args.ChangedBy}");
                 });
             };
 
@@ -105,7 +124,6 @@ namespace SmartHome.WPF.ViewModels
                 await Application.Current.Dispatcher.InvokeAsync(async () =>
                 {
                     await LoadDevicesAsync();
-                    ShowNotification("➕ Yeni Cihaz Eklendi", args.Message);
                 });
             };
 
@@ -115,7 +133,6 @@ namespace SmartHome.WPF.ViewModels
                 await Application.Current.Dispatcher.InvokeAsync(async () =>
                 {
                     await LoadDevicesAsync();
-                    ShowNotification("🗑️ Cihaz Silindi", args.Message);
                 });
             };
 
@@ -125,7 +142,6 @@ namespace SmartHome.WPF.ViewModels
                 await Application.Current.Dispatcher.InvokeAsync(async () =>
                 {
                     await LoadDevicesAsync();
-                    ShowNotification("🤖 Otomasyon Çalıştı", message);
                 });
             };
 
@@ -135,7 +151,15 @@ namespace SmartHome.WPF.ViewModels
                 await Application.Current.Dispatcher.InvokeAsync(async () =>
                 {
                     await LoadDevicesAsync();
-                    ShowNotification("🏠 Presence Değişti", message);
+                });
+            };
+
+            // Enerji tasarrufu tetiklendiğinde
+            _signalRService.EnergySavingTriggered += async (sender, message) =>
+            {
+                await Application.Current.Dispatcher.InvokeAsync(async () =>
+                {
+                    await LoadDevicesAsync();
                 });
             };
         }
@@ -145,25 +169,14 @@ namespace SmartHome.WPF.ViewModels
             await _signalRService.StartAsync();
         }
 
-        private void ShowNotification(string title, string message)
-        {
-            // Toast notification göster (basit MessageBox ile)
-            // Production'da Windows Toast Notification kullanılabilir
-            MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Information);
-        }
-
-
-
-        // [RelayCommand] etiketi sayesinde bu metotlar otomatik olarak ekrandaki butonlara (Command) dönüşür.
-
         [RelayCommand]
         public async Task LoadDevicesAsync()
         {
             var apiDevices = await _apiService.GetDevicesAsync();
-            Devices.Clear(); // Ekranı temizle
+            Devices.Clear();
             foreach (var device in apiDevices)
             {
-                Devices.Add(device); // API'den gelenleri ekrana ekle
+                Devices.Add(device);
             }
         }
 
@@ -176,7 +189,7 @@ namespace SmartHome.WPF.ViewModels
             bool isSuccess = await _apiService.AddDeviceAsync(NewDeviceName, NewDeviceType, SelectedProtocol);
             if (isSuccess)
             {
-                NewDeviceName = string.Empty; // Eklendikten sonra kutuyu temizle
+                NewDeviceName = string.Empty;
                 await LoadDevicesAsync();
             }
             else
@@ -215,14 +228,9 @@ namespace SmartHome.WPF.ViewModels
         [RelayCommand]
         public void Logout(System.Windows.Window currentWindow)
         {
-            // 1. Kuryenin hafızasını temizle
             _apiService.Logout();
-
-            // 2. Giriş Ekranını (LoginWindow) yeniden oluştur ve göster
             var loginWindow = new LoginWindow();
             loginWindow.Show();
-
-            // 3. Şu anki Ana Ekranı (MainWindow) tamamen kapat
             currentWindow?.Close();
         }
 

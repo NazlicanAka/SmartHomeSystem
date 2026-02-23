@@ -5,6 +5,7 @@ using SmartHome.API.Domain.Interfaces;
 using SmartHome.API.Infrastructure.Data;
 using SmartHome.API.Application.Events;
 using SmartHome.API.Domain.Events;
+using SmartHome.API.Domain.Extensions;
 
 namespace SmartHome.API.Application.Services
 {
@@ -14,7 +15,6 @@ namespace SmartHome.API.Application.Services
         private readonly IEnumerable<IDeviceProtocolAdapter> _adapters;
         private readonly IEventDispatcher _eventDispatcher;
 
-        // Veritabanı köprümüzü (DbContext) ve Event Dispatcher'ı inject ediyoruz
         public DeviceService(
             SmartHomeDbContext context, 
             IEnumerable<IDeviceProtocolAdapter> adapters,
@@ -25,7 +25,7 @@ namespace SmartHome.API.Application.Services
             _eventDispatcher = eventDispatcher;
         }
 
-        // 📊 LOG KAYDETME METODu: Her cihaz durum değişimini kaydeder
+        // Her cihaz durum değişimini kaydeder
         private void LogDeviceAction(Guid deviceId, string deviceName, string action, string triggeredBy)
         {
             var log = new DeviceHistoryEntity
@@ -43,11 +43,10 @@ namespace SmartHome.API.Application.Services
 
         public IEnumerable<ISmartDevice> GetAllDevices()
         {
-            // 1. Veritabanındaki tüm kayıtları çek
             var entities = _context.Devices.ToList();
             var devices = new List<ISmartDevice>();
 
-            // 2. Veritabanı kayıtlarını (Entity), iş kuralları nesnelerine (Domain) çevir (Mapping)
+            // Entity'leri domain modeline dönüştür (mapping)
             foreach (var entity in entities)
             {
                 if (entity.Type == DeviceType.Light)
@@ -56,15 +55,13 @@ namespace SmartHome.API.Application.Services
                 }
                 else if (entity.Type == DeviceType.Thermostat)
                 {
-                    var thermostat = new SmartThermostat(entity.Name) { Id = entity.Id, IsOn = entity.IsOn };
-                    if (entity.Temperature.HasValue) thermostat.SetTemperature(entity.Temperature.Value);
-                    devices.Add(thermostat);
+                    devices.Add(new SmartThermostat(entity.Name) { Id = entity.Id, IsOn = entity.IsOn });
                 }
-                else if (entity.Type == DeviceType.AirPurifier) // YENİ EKLENEN
+                else if (entity.Type == DeviceType.AirPurifier) 
                 {
                     devices.Add(new SmartAirPurifier(entity.Name) { Id = entity.Id, IsOn = entity.IsOn });
                 }
-                else if (entity.Type == DeviceType.RobotVacuum) // YENİ EKLENEN
+                else if (entity.Type == DeviceType.RobotVacuum)
                 {
                     devices.Add(new SmartRobotVacuum(entity.Name) { Id = entity.Id, IsOn = entity.IsOn });
                 }
@@ -74,8 +71,8 @@ namespace SmartHome.API.Application.Services
 
         public async Task AddCustomDeviceAsync(string name, DeviceType type, string protocol, string username)
         {
-            // 1. İstenen protokole uygun adaptörü bul (Wi-Fi veya Bluetooth)
-            var adapter = _adapters.FirstOrDefault(a => a.ProtocolName == protocol);
+            // 1. İstenen protokole uygun adaptörü bul
+            var adapter = _adapters.FirstOrDefault(a => a.Protocol.ToDisplayString() == protocol);
 
             if (adapter != null)
             {
@@ -94,12 +91,11 @@ namespace SmartHome.API.Application.Services
                     };
                     _context.Devices.Add(entity);
 
-                    // 📊 LOG: Cihaz eklendi
                     LogDeviceAction(entity.Id, name, "Eklendi", username);
 
                     _context.SaveChanges();
 
-                    // 📢 EVENT: Cihaz eklendi event'i yayınla
+                    // Cihaz eklendi event'i yayınla
                     await _eventDispatcher.PublishAsync(new DeviceAddedEvent(
                         entity.Id, name, type, protocol, username));
                 }
@@ -111,34 +107,17 @@ namespace SmartHome.API.Application.Services
             var entity = _context.Devices.FirstOrDefault(d => d.Id == id);
             if (entity != null)
             {
-                var deviceName = entity.Name; // Event için sakla
+                var deviceName = entity.Name;
 
-                // 📊 LOG: Cihaz silindi
                 LogDeviceAction(entity.Id, entity.Name, "Silindi", username);
 
                 _context.Devices.Remove(entity);
                 _context.SaveChanges();
 
-                // 📢 EVENT: Cihaz silindi event'i yayınla
+                // Cihaz silindi event'i yayınla
                 await _eventDispatcher.PublishAsync(new DeviceRemovedEvent(
                     id, deviceName, username));
             }
-        }
-
-        public void AddDevice(ISmartDevice device)
-        {
-            // Domain nesnesini veritabanı satırına (Entity) çeviriyoruz
-            var entity = new DeviceEntity
-            {
-                Id = device.Id,
-                Name = device.Name,
-                Type = device.Type,
-                IsOn = device.IsOn,
-                Temperature = (device as SmartThermostat)?.Temperature
-            };
-
-            _context.Devices.Add(entity);
-            _context.SaveChanges(); // SQL'de INSERT INTO komutunu çalıştırır
         }
 
         public void TurnOnAllDevices()
@@ -146,9 +125,9 @@ namespace SmartHome.API.Application.Services
             var entities = _context.Devices.ToList();
             foreach (var entity in entities)
             {
-                entity.IsOn = true; // SQL'de UPDATE komutunu hazırlar
+                entity.IsOn = true;
             }
-            _context.SaveChanges(); // Veritabanına kaydeder
+            _context.SaveChanges();
         }
 
         public void TurnOffAllDevices()
@@ -169,47 +148,12 @@ namespace SmartHome.API.Application.Services
                 bool previousState = entity.IsOn;
                 entity.IsOn = !entity.IsOn;
 
-                // 📊 LOG: Cihaz açıldı/kapandı
                 string action = entity.IsOn ? "Açıldı" : "Kapatıldı";
                 LogDeviceAction(entity.Id, entity.Name, action, username);
 
-                // 🤖 OTOMASYON SENARYOSU: Robot Süpürge ↔ Hava Temizleyici
-                // Eğer Robot Süpürge AÇILIYORSA, Hava Temizleyicileri KAPAT (toz yayılmasın)
-                if (entity.Type == DeviceType.RobotVacuum && entity.IsOn == true)
-                {
-                    var airPurifiers = _context.Devices.Where(d => d.Type == DeviceType.AirPurifier).ToList();
-                    foreach (var purifier in airPurifiers)
-                    {
-                        purifier.IsOn = false; // Hava Temizleyicileri kapat
-                        LogDeviceAction(purifier.Id, purifier.Name, "Kapatıldı", "Otomasyon: Robot Süpürge");
-                    }
-                }
-                // Eğer Robot Süpürge KAPATILIYORSA, Hava Temizleyicileri tekrar AÇ (temizlik sonrası hava filtreleme)
-                else if (entity.Type == DeviceType.RobotVacuum && entity.IsOn == false)
-                {
-                    var airPurifiers = _context.Devices.Where(d => d.Type == DeviceType.AirPurifier).ToList();
-                    var affectedIds = new List<Guid>();
-
-                    foreach (var purifier in airPurifiers)
-                    {
-                        purifier.IsOn = true; // Hava Temizleyicileri aç
-                        LogDeviceAction(purifier.Id, purifier.Name, "Açıldı", "Otomasyon: Robot Süpürge");
-                        affectedIds.Add(purifier.Id);
-                    }
-
-                    // 📢 EVENT: Otomasyon tetiklendi
-                    if (affectedIds.Any())
-                    {
-                        await _eventDispatcher.PublishAsync(new AutomationTriggeredEvent(
-                            "Robot Süpürge → Hava Temizleyici", 
-                            entity.Name, 
-                            affectedIds));
-                    }
-                }
-
                 _context.SaveChanges();
 
-                // 📢 EVENT: Cihaz durumu değişti
+                // Cihaz durumu değişti (Otomasyon handler'ı bu event'i dinleyecek)
                 await _eventDispatcher.PublishAsync(new DeviceStateChangedEvent(
                     entity.Id, entity.Name, entity.Type, entity.IsOn, previousState, username, "User"));
             }
@@ -223,35 +167,36 @@ namespace SmartHome.API.Application.Services
 
             foreach (var device in devices)
             {
-                if (isHome) // EVE GELİNDİ
+                // Işıklar ve Termostat açılsın
+                if (isHome)
                 {
                     if (device.Type == SmartHome.API.Domain.Enums.DeviceType.Light || device.Type == SmartHome.API.Domain.Enums.DeviceType.Thermostat)
                     {
-                        device.IsOn = true; // Işıklar ve Termostat açılsın
+                        device.IsOn = true;
                         LogDeviceAction(device.Id, device.Name, "Açıldı", presenceTrigger);
                         affectedCount++;
                     }
                 }
-                else // EVDEN AYRILINDI
+                // Işıklar ve Termostat kapansın
+                else
                 {
                     if (device.Type == SmartHome.API.Domain.Enums.DeviceType.Light || device.Type == SmartHome.API.Domain.Enums.DeviceType.Thermostat)
                     {
-                        device.IsOn = false; // Işıklar ve Termostat kapansın
+                        device.IsOn = false;
                         LogDeviceAction(device.Id, device.Name, "Kapatıldı", presenceTrigger);
                         affectedCount++;
                     }
                 }
             }
-            _context.SaveChanges(); // Veritabanına kaydet!
+            _context.SaveChanges();
 
-            // 📢 EVENT: Kullanıcı presence değişti
+            // Kullanıcı presence değişti
             await _eventDispatcher.PublishAsync(new UserPresenceChangedEvent(
                 username, isHome, affectedCount));
 
             await Task.CompletedTask; // async metod olduğu için
         }
 
-        // 📊 Cihaz geçmişini getir: Tüm cihazlar veya belirli bir cihaz için
         public IEnumerable<DeviceHistoryEntity> GetDeviceHistory(Guid? deviceId = null)
         {
             if (deviceId.HasValue)
@@ -271,12 +216,69 @@ namespace SmartHome.API.Application.Services
             }
         }
 
-        // 🗑️ Tüm geçmişi temizle
         public void ClearAllHistory()
         {
             var allHistory = _context.DeviceHistory.ToList();
             _context.DeviceHistory.RemoveRange(allHistory);
             _context.SaveChanges();
+        }
+
+        // Belirli türdeki tüm cihazları aç/kapat (Automation handler için)
+        public async Task<List<Guid>> ToggleDevicesByTypeAsync(DeviceType deviceType, bool turnOn, string triggeredBy)
+        {
+            var devices = _context.Devices.Where(d => d.Type == deviceType).ToList();
+            var affectedIds = new List<Guid>();
+
+            foreach (var device in devices)
+            {
+                if (device.IsOn != turnOn) // Sadece değişecekse işlem yap
+                {
+                    device.IsOn = turnOn;
+                    string action = turnOn ? "Açıldı" : "Kapatıldı";
+                    LogDeviceAction(device.Id, device.Name, action, triggeredBy);
+                    affectedIds.Add(device.Id);
+
+                    // Her cihaz için ayrı event yayınla (SignalR için)
+                    await _eventDispatcher.PublishAsync(new DeviceStateChangedEvent(
+                        device.Id, device.Name, device.Type, device.IsOn, !device.IsOn, triggeredBy, "Automation"));
+                }
+            }
+
+            _context.SaveChanges();
+            return affectedIds;
+        }
+
+        // Enerji Tasarrufu: Açık unutulmuş ışıkları kapat
+        public async Task TriggerEnergySavingAsync()
+        {
+            // database'den açık ışıkları çektim.
+            var lights = _context.Devices
+                .Where(d => d.Type == DeviceType.Light && d.IsOn)
+                .ToList();
+
+            var affectedIds = new List<Guid>();
+
+            foreach (var light in lights)
+            {
+                // ışıkları kapattım, log attım
+                light.IsOn = false;
+                LogDeviceAction(light.Id, light.Name, "Kapatıldı", "Sistem (Enerji Tasarrufu)");
+                affectedIds.Add(light.Id);
+
+                // Her ışık için ayrı event yayınla (SignalR için)
+                // frontend 'de bu event'leri dinleyip sadece ışıkların durumunu güncelleyeceğiz, diğer cihazlar etkilenmeyecek.
+                await _eventDispatcher.PublishAsync(new DeviceStateChangedEvent(
+                    light.Id, light.Name, light.Type, false, true, "Sistem", "EnergySaving"));
+            }
+
+            _context.SaveChanges(); // db kayıt yapıldı.
+
+            // Toplu enerji tasarrufu event'i yayınla
+            if (affectedIds.Any())
+            {
+                await _eventDispatcher.PublishAsync(new EnergySavingTriggeredEvent(
+                    affectedIds.Count, affectedIds));
+            }
         }
     }
 }

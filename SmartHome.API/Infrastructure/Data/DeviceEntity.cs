@@ -9,6 +9,5 @@ namespace SmartHome.API.Infrastructure.Data
         public string Name { get; set; }
         public DeviceType Type { get; set; }
         public bool IsOn { get; set; }
-        public double? Temperature { get; set; } // Nullable, çünkü ışıklarda sıcaklık ayarı yok
     }
 }

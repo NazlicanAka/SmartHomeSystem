@@ -10,9 +10,6 @@ namespace SmartHome.API.Domain.Devices
         public DeviceType Type => DeviceType.Thermostat;
         public bool IsOn { get; set; }
 
-        // Termostata özel ekstra özellik:
-        public double Temperature { get; private set; } = 22.0;
-
         public SmartThermostat(string name)
         {
             Name = name;
@@ -30,13 +27,7 @@ namespace SmartHome.API.Domain.Devices
 
         public string GetStatus()
         {
-            return IsOn ? $"Termostat çalışıyor. Sıcaklık: {Temperature}°C" : "Termostat kapalı.";
-        }
-
-        // ISmartDevice'da olmayan, sadece bu cihaza has bir metot
-        public void SetTemperature(double targetTemp)
-        {
-            Temperature = targetTemp;
+            return IsOn ? "Termostat çalışıyor." : "Termostat kapalı.";
         }
     }
 }

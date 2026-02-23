@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using SmartHome.API.Application.Interfaces;
 using SmartHome.API.Domain.Enums;
+using SmartHome.API.Domain.Extensions;
 
 namespace SmartHome.API.Controllers
 {
@@ -11,11 +12,13 @@ namespace SmartHome.API.Controllers
     public class DevicesController : ControllerBase
     {
         private readonly IDeviceService _deviceService;
+        private readonly IEnumerable<IDeviceProtocolAdapter> _adapters;
 
         // Dependency Injection: Sistem otomatik olarak IDeviceService'i buraya verecek
-        public DevicesController(IDeviceService deviceService)
+        public DevicesController(IDeviceService deviceService, IEnumerable<IDeviceProtocolAdapter> adapters)
         {
             _deviceService = deviceService;
+            _adapters = adapters;
         }
 
         // 1. GET İsteği: Tüm cihazları listeler
@@ -107,6 +110,31 @@ namespace SmartHome.API.Controllers
         {
             _deviceService.ClearAllHistory();
             return Ok(new { Message = "Tüm geçmiş kayıtları başarıyla temizlendi!" });
+        }
+
+        // 📋 GET İsteği: Desteklenen cihaz türlerini getir
+        // Kullanım: /api/devices/types
+        [HttpGet("types")]
+        [AllowAnonymous] // Giriş yapmadan da erişilebilir (kayıt ekranı için)
+        public IActionResult GetDeviceTypes()
+        {
+            var deviceTypes = Enum.GetNames(typeof(DeviceType));
+            return Ok(deviceTypes);
+        }
+
+        // 📋 GET İsteği: Desteklenen protokolleri getir (DI'dan dinamik olarak)
+        // Kullanım: /api/devices/protocols
+        [HttpGet("protocols")]
+        [AllowAnonymous]
+        public IActionResult GetProtocols()
+        {
+            // ✅ Loose Coupling: DI container'daki kayıtlı adapter'lardan protokolleri al
+            var protocols = _adapters
+                .Select(a => a.Protocol.ToDisplayString())
+                .Distinct()
+                .ToList();
+
+            return Ok(protocols);
         }
     }
 }

@@ -2,9 +2,8 @@ using SmartHome.API.Domain.Enums;
 
 namespace SmartHome.API.Domain.Events
 {
-    /// <summary>
-    /// Cihaz durumu değiştiğinde tetiklenen event
-    /// </summary>
+
+    // DomainEvent abstract classından inherit olan classlardır. Asıl olaylardır.
     public class DeviceStateChangedEvent : DomainEvent
     {
         public Guid DeviceId { get; }
@@ -34,9 +33,6 @@ namespace SmartHome.API.Domain.Events
         }
     }
 
-    /// <summary>
-    /// Yeni cihaz eklendiğinde tetiklenen event
-    /// </summary>
     public class DeviceAddedEvent : DomainEvent
     {
         public Guid DeviceId { get; }
@@ -55,9 +51,6 @@ namespace SmartHome.API.Domain.Events
         }
     }
 
-    /// <summary>
-    /// Cihaz silindiğinde tetiklenen event
-    /// </summary>
     public class DeviceRemovedEvent : DomainEvent
     {
         public Guid DeviceId { get; }
@@ -72,9 +65,6 @@ namespace SmartHome.API.Domain.Events
         }
     }
 
-    /// <summary>
-    /// Cihaz bağlantısı kesildiğinde tetiklenen event
-    /// </summary>
     public class DeviceDisconnectedEvent : DomainEvent
     {
         public Guid DeviceId { get; }
@@ -89,9 +79,6 @@ namespace SmartHome.API.Domain.Events
         }
     }
 
-    /// <summary>
-    /// Otomasyon senaryosu tetiklendiğinde
-    /// </summary>
     public class AutomationTriggeredEvent : DomainEvent
     {
         public string AutomationName { get; }
@@ -106,9 +93,6 @@ namespace SmartHome.API.Domain.Events
         }
     }
 
-    /// <summary>
-    /// Kullanıcı eve geldiğinde/ayrıldığında (Presence)
-    /// </summary>
     public class UserPresenceChangedEvent : DomainEvent
     {
         public string Username { get; }
@@ -120,6 +104,18 @@ namespace SmartHome.API.Domain.Events
             Username = username;
             IsHome = isHome;
             AffectedDeviceCount = affectedDeviceCount;
+        }
+    }
+
+    public class EnergySavingTriggeredEvent : DomainEvent
+    {
+        public int DevicesAffected { get; }
+        public List<Guid> AffectedDeviceIds { get; }
+
+        public EnergySavingTriggeredEvent(int devicesAffected, List<Guid> affectedDeviceIds)
+        {
+            DevicesAffected = devicesAffected;
+            AffectedDeviceIds = affectedDeviceIds;
         }
     }
 }

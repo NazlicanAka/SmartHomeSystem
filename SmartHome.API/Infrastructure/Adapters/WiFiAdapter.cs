@@ -1,15 +1,15 @@
 ﻿using SmartHome.API.Application.Interfaces;
+using SmartHome.API.Domain.Enums;
 
 namespace SmartHome.API.Infrastructure.Adapters
 {
     public class WiFiAdapter : IDeviceProtocolAdapter
     {
-        public string ProtocolName => "Wi-Fi";
+        public Protocol Protocol => Protocol.WiFi;
 
         public async Task<bool> PairDeviceAsync(string deviceAddress)
         {
-            // Gerçek bir senaryoda burada IP adresi üzerinden TCP/IP bağlantısı kurulur.
-            // Biz burada 2 saniyelik bir gecikme ile ağ taraması ve bağlanma simülasyonu yapıyoruz.
+            // 2 saniyelik bir gecikme ile ağ taraması ve bağlanma simülasyonu yapıyoruz.
             await Task.Delay(2000);
             return true; // Başarıyla eşleşti
         }

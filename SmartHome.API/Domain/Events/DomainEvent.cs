@@ -1,8 +1,5 @@
 namespace SmartHome.API.Domain.Events
 {
-    /// <summary>
-    /// Tüm domain event'lerinin türeyeceği temel interface
-    /// </summary>
     public interface IDomainEvent
     {
         Guid EventId { get; }
@@ -10,9 +7,7 @@ namespace SmartHome.API.Domain.Events
         string EventType { get; }
     }
 
-    /// <summary>
-    /// Domain Event base class
-    /// </summary>
+    // Sadece bir event oldu denilemez, ışık kapandı, cihaz eklendi, hareket algılandı gibi farklı eventler olabilir. O yüzden abstract yapıyoruz.
     public abstract class DomainEvent : IDomainEvent
     {
         public Guid EventId { get; }
@@ -23,7 +18,7 @@ namespace SmartHome.API.Domain.Events
         {
             EventId = Guid.NewGuid();
             OccurredAt = DateTime.UtcNow;
-            EventType = GetType().Name;
+            EventType = GetType().Name; // O an kullanan sınıfın adını okur ve onun adını EventType olarak koyar.
         }
     }
 }
